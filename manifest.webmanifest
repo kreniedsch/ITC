@@ -1,0 +1,16 @@
+{
+  "name": "Dock-Test",
+  "short_name": "Dock-Test",
+  "description": "Dockingstation am iPhone testen: Tastatur, Maus, LAN, Kamera – mit Ticket-Bericht.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0b1120",
+  "theme_color": "#0f172a",
+  "lang": "de-CH",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

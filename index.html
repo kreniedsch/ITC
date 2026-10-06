@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dock-Test">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-512.png">
+<title>Dock-Test</title>
+<style>
+:root{
+  --bg:#0b1120; --panel:#131c2e; --panel2:#1b263b; --line:#2a3754;
+  --text:#e6ecf5; --muted:#8b98b0; --accent:#3b82f6;
+  --ok:#22c55e; --fail:#ef4444; --na:#a3a3a3; --warn:#f59e0b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font:14px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;overscroll-behavior:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+.app{display:grid;grid-template-columns:150px 1fr;height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+nav{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;padding:8px;overflow-y:auto}
+nav .brand{font-weight:700;font-size:15px;padding:6px 8px 10px}
+nav button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;color:var(--text);
+  padding:9px 8px;border-radius:8px;font-size:14px}
+nav button.active{background:var(--panel2)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);flex:none}
+.dot.ok{background:var(--ok)} .dot.fail{background:var(--fail)} .dot.na{background:var(--na)}
+main{overflow-y:auto;padding:12px 16px 24px}
+section{display:none} section.active{display:block}
+h2{margin:0 0 8px;font-size:17px}
+.hint{color:var(--muted);font-size:12.5px;margin:4px 0 10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+input[type=text],textarea{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px;font-size:15px;font-family:inherit}
+textarea{width:100%}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px;font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent)}
+.btn.danger{border-color:var(--fail);color:#fca5a5}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.status .btn.sel-ok{background:var(--ok);border-color:var(--ok);color:#04110a}
+.status .btn.sel-fail{background:var(--fail);border-color:var(--fail)}
+.status .btn.sel-na{background:var(--na);border-color:var(--na);color:#111}
+.status input{flex:1;min-width:140px;padding:6px 8px;font-size:14px}
+/* Tastatur */
+.kbd{display:flex;flex-direction:column;gap:4px;outline:none}
+.krow{display:flex;gap:4px}
+.key{flex:1 1 0;min-width:0;height:34px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);transition:background .1s}
+.key.hit{background:#14532d;border-color:var(--ok);color:#dcfce7}
+.key.down{background:var(--accent);border-color:var(--accent);color:#fff}
+.key.skip{background:#262626;color:#555;text-decoration:line-through}
+.gap{flex:.4 1 0}
+.kinfo{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.big{font-size:20px;font-weight:700}
+.capture{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+/* Maus */
+.pad{position:relative;height:200px;border:2px dashed var(--line);border-radius:12px;background:var(--panel2);
+  touch-action:none;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.cursor{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--accent);pointer-events:none;display:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:13px}
+.chip.on{background:#14532d;border-color:var(--ok);color:#dcfce7}
+/* LAN / Kamera */
+.kv{display:grid;grid-template-columns:150px 1fr;gap:4px 10px}
+.kv div:nth-child(odd){color:var(--muted)}
+ol{margin:4px 0 8px 18px;padding:0}
+video{width:100%;max-height:220px;background:#000;border-radius:10px}
+.cam{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.tag{font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag.ext{border-color:var(--warn);color:var(--warn)}
+.okc{color:var(--ok)} .failc{color:var(--fail)}
+pre.report{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font:13px/1.45 ui-monospace,Menlo,monospace;-webkit-user-select:text;user-select:text}
+/* Hochformat-Hinweis */
+.rotate{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:9;text-align:center;padding:24px}
+.rotate .ico{font-size:56px}
+@media (orientation:portrait){ body:not(.portrait-ok) .rotate{display:flex} }
+</style>
+</head>
+<body>
+<div class="rotate">
+  <div class="ico">📱↻</div>
+  <div class="big">Bitte iPhone ins Querformat drehen</div>
+  <div class="hint">Ausrichtungssperre im Kontrollzentrum ggf. deaktivieren.</div>
+  <button class="btn" id="portraitOk">Trotzdem fortfahren</button>
+</div>
+
+<div class="app">
+  <nav id="nav">
+    <div class="brand">🔌 Dock-Test</div>
+    <button data-s="start"><span class="dot" id="d-start"></span>Ticket</button>
+    <button data-s="kbd"><span class="dot" id="d-kbd"></span>Tastatur</button>
+    <button data-s="mouse"><span class="dot" id="d-mouse"></span>Maus</button>
+    <button data-s="lan"><span class="dot" id="d-lan"></span>LAN</button>
+    <button data-s="cam"><span class="dot" id="d-cam"></span>Kamera</button>
+    <button data-s="report"><span class="dot" id="d-report"></span>Bericht</button>
+  </nav>
+
+  <main>
+    <!-- TICKET -->
+    <section id="s-start">
+      <h2>Ticket-Daten</h2>
+      <div class="card grid2">
+        <label class="f">Ticket-Nr.<input type="text" data-meta="ticket" autocomplete="off"></label>
+        <label class="f">Dockingstation (Modell)<input type="text" data-meta="dock" autocomplete="off" placeholder="z. B. HP USB-C Dock G5"></label>
+        <label class="f">Asset-Nr. / Seriennummer<input type="text" data-meta="asset" autocomplete="off"></label>
+        <label class="f">Benutzer / Standort<input type="text" data-meta="user" autocomplete="off"></label>
+        <label class="f">Techniker<input type="text" data-meta="tech" autocomplete="off"></label>
+      </div>
+      <div class="card">
+        <b>Vorbereitung</b>
+        <ol>
+          <li>Dockingstation mit Strom versorgen, per USB-C ans iPhone anschliessen.</li>
+          <li>Tastatur, Maus, LAN-Kabel und ggf. Kamera an die Dockingstation anschliessen.</li>
+          <li>Maus am iPhone: <i>Einstellungen › Bedienungshilfen › Tippen › AssistiveTouch</i> einschalten.</li>
+        </ol>
+        <div class="row"><button class="btn danger" id="resetAll">Neuer Test (alles zurücksetzen)</button>
+        <button class="btn primary" data-go="kbd">Weiter zur Tastatur →</button></div>
+      </div>
+    </section>
+
+    <!-- TASTATUR -->
+    <section id="s-kbd">
+      <div class="status" data-test="kbd"></div>
+      <div class="kinfo">
+        <span class="big" id="kProgress">0 / 0</span>
+        <span>Letzte Taste: <b id="kLast">–</b></span>
+        <button class="btn" id="kFocus">Tastatur aktivieren</button>
+        <button class="btn" id="kReset">Zurücksetzen</button>
+      </div>
+      <div class="hint">Alle Tasten einmal drücken. Taste antippen = als «nicht testbar» markieren (z. B. vom iPhone abgefangene Tasten).</div>
+      <textarea class="capture" id="kCapture" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+      <div class="kbd" id="kbd"></div>
+    </section>
+
+    <!-- MAUS -->
+    <section id="s-mouse">
+      <div class="status" data-test="mouse"></div>
+      <div class="hint">Mit der Maus im Feld bewegen, klicken, doppelklicken, rechtsklicken, scrollen und ziehen. Erfordert AssistiveTouch.</div>
+      <div class="pad" id="pad"><span id="padText">Testfeld</span><div class="cursor" id="cursor"></div></div>
+      <div class="chips" id="mChips"></div>
+      <div class="row"><span class="hint" id="mInfo">Eingabe: –</span><button class="btn" id="mReset">Zurücksetzen</button></div>
+    </section>
+
+    <!-- LAN -->
+    <section id="s-lan">
+      <div class="status" data-test="lan"></div>
+      <div class="card">
+        <b>Ablauf</b>
+        <ol>
+          <li>LAN-Kabel an der Dockingstation einstecken.</li>
+          <li><i>Einstellungen › WLAN</i> ausschalten und <i>Mobilfunk › Mobile Daten</i> ausschalten.</li>
+          <li>Optional: <i>Einstellungen › Ethernet</i> prüfen (IP-Adresse sichtbar).</li>
+          <li>Test starten. Ist das iPhone online, läuft die Verbindung über LAN.</li>
+        </ol>
+        <label class="row"><input type="checkbox" id="lanOff"> WLAN und Mobilfunk sind ausgeschaltet</label>
+        <div class="row" style="margin-top:8px"><button class="btn primary" id="lanRun">Verbindung testen</button><span id="lanBusy" class="hint"></span></div>
+      </div>
+      <div class="card kv" id="lanOut">
+        <div>Status</div><div>noch nicht getestet</div>
+      </div>
+    </section>
+
+    <!-- KAMERA -->
+    <section id="s-cam">
+      <div class="status" data-test="cam"></div>
+      <div class="hint">Hinweis: Das iPhone unterstützt USB-Webcams je nach iOS-Version nicht. Die Liste zeigt, was das System erkennt.</div>
+      <div class="row" style="margin-bottom:8px"><button class="btn primary" id="camScan">Kameras suchen</button><span class="hint" id="camMsg"></span></div>
+      <div class="card" id="camList"><span class="hint">Noch nicht gesucht.</span></div>
+      <video id="video" playsinline muted autoplay style="display:none"></video>
+      <div class="hint" id="camRes"></div>
+    </section>
+
+    <!-- BERICHT -->
+    <section id="s-report">
+      <h2>Ticket-Bericht</h2>
+      <pre class="report" id="report"></pre>
+      <div class="row"><button class="btn primary" id="copy">Kopieren</button><button class="btn" id="share">Teilen</button><span class="hint" id="copyMsg"></span></div>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const STORE = 'docktest-v1';
+const LABEL = {'':'offen', ok:'OK', fail:'Fehler', na:'n. a.'};
+const TESTS = {kbd:'Tastatur', mouse:'Maus', lan:'LAN', cam:'Kamera'};
+
+const fresh = () => ({
+  meta:{ticket:'',dock:'',asset:'',user:'',tech:''},
+  res:{kbd:{s:'',n:''},mouse:{s:'',n:''},lan:{s:'',n:''},cam:{s:'',n:''}},
+  kHit:[], kSkip:[], mouse:{}, lan:null, cam:null, started:new Date().toISOString()
+});
+let st;
+try { st = JSON.parse(localStorage.getItem(STORE)) || fresh(); } catch(e){ st = fresh(); }
+const keepTech = () => st.meta.tech;
+function save(){ try{ localStorage.setItem(STORE, JSON.stringify(st)); }catch(e){} refreshDots(); }
+
+/* ---------- Navigation ---------- */
+let cur = 'start';
+function go(s){
+  cur = s;
+  $$('nav button').forEach(b => b.classList.toggle('active', b.dataset.s === s));
+  $$('main section').forEach(x => x.classList.toggle('active', x.id === 's-' + s));
+  if (s === 'kbd') setTimeout(() => $('#kCapture').focus(), 50); else $('#kCapture').blur();
+  if (s !== 'cam') stopVideo();
+  if (s === 'report') buildReport();
+  $('main').scrollTop = 0;
+}
+$$('nav button').forEach(b => b.onclick = () => go(b.dataset.s));
+$$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+$('#portraitOk').onclick = () => document.body.classList.add('portrait-ok');
+
+function refreshDots(){
+  Object.keys(TESTS).forEach(t => { $('#d-'+t).className = 'dot ' + st.res[t].s; });
+  const m = st.meta; $('#d-start').className = 'dot ' + (m.ticket || m.dock ? 'ok' : '');
+  const all = Object.keys(TESTS).map(t => st.res[t].s);
+  $('#d-report').className = 'dot ' + (all.includes('fail') ? 'fail' : all.every(x => x) ? 'ok' : '');
+}
+
+/* ---------- Ticket ---------- */
+$$('[data-meta]').forEach(i => {
+  i.value = st.meta[i.dataset.meta] || '';
+  i.oninput = () => { st.meta[i.dataset.meta] = i.value; save(); };
+});
+$('#resetAll').onclick = () => {
+  if (!confirm('Alle Ergebnisse löschen und neuen Test starten?')) return;
+  const tech = keepTech(); st = fresh(); st.meta.tech = tech;
+  $$('[data-meta]').forEach(i => i.value = st.meta[i.dataset.meta] || '');
+  renderAll(); save();
+};
+
+/* ---------- Status-Leisten ---------- */
+$$('.status').forEach(box => {
+  const t = box.dataset.test;
+  box.innerHTML = `<b style="margin-right:4px">${TESTS[t]}:</b>
+    <button class="btn" data-v="ok">OK</button><button class="btn" data-v="fail">Fehler</button><button class="btn" data-v="na">n. a.</button>
+    <input type="text" placeholder="Bemerkung" autocomplete="off">`;
+  box.querySelectorAll('button').forEach(b => b.onclick = () => {
+    st.res[t].s = st.res[t].s === b.dataset.v ? '' : b.dataset.v; paintStatus(); save();
+  });
+  const inp = box.querySelector('input');
+  inp.oninput = () => { st.res[t].n = inp.value; save(); };
+});
+function paintStatus(){
+  $$('.status').forEach(box => {
+    const r = st.res[box.dataset.test];
+    box.querySelectorAll('button').forEach(b => b.className = 'btn' + (r.s === b.dataset.v ? ' sel-' + b.dataset.v : ''));
+    const inp = box.querySelector('input'); if (document.activeElement !== inp) inp.value = r.n || '';
+  });
+}
+function autoSet(t, v){ if (!st.res[t].s){ st.res[t].s = v; paintStatus(); } }
+
+/* ---------- Tastatur (Schweizer QWERTZ) ---------- */
+const K = (code, label, w=1) => ({code, label, w});
+const LAYOUT = [
+  [K('Escape','Esc'), {gap:1}, K('F1','F1'),K('F2','F2'),K('F3','F3'),K('F4','F4'), {gap:1},
+   K('F5','F5'),K('F6','F6'),K('F7','F7'),K('F8','F8'), {gap:1}, K('F9','F9'),K('F10','F10'),K('F11','F11'),K('F12','F12')],
+  [K('Backquote','§'),K('Digit1','1'),K('Digit2','2'),K('Digit3','3'),K('Digit4','4'),K('Digit5','5'),K('Digit6','6'),
+   K('Digit7','7'),K('Digit8','8'),K('Digit9','9'),K('Digit0','0'),K('Minus',"'"),K('Equal','^'),K('Backspace','⌫',2)],
+  [K('Tab','⇥',1.5),K('KeyQ','Q'),K('KeyW','W'),K('KeyE','E'),K('KeyR','R'),K('KeyT','T'),K('KeyY','Z'),K('KeyU','U'),
+   K('KeyI','I'),K('KeyO','O'),K('KeyP','P'),K('BracketLeft','ü'),K('BracketRight','¨'),K('Delete','Entf',1.5)],
+  [K('CapsLock','⇪',1.75),K('KeyA','A'),K('KeyS','S'),K('KeyD','D'),K('KeyF','F'),K('KeyG','G'),K('KeyH','H'),K('KeyJ','J'),
+   K('KeyK','K'),K('KeyL','L'),K('Semicolon','ö'),K('Quote','ä'),K('Backslash','$'),K('Enter','↵',1.25)],
+  [K('ShiftLeft','⇧',1.25),K('IntlBackslash','<'),K('KeyZ','Y'),K('KeyX','X'),K('KeyC','C'),K('KeyV','V'),K('KeyB','B'),
+   K('KeyN','N'),K('KeyM','M'),K('Comma',','),K('Period','.'),K('Slash','-'),K('ShiftRight','⇧',1.75),K('ArrowUp','↑')],
+  [K('ControlLeft','Ctrl',1.25),K('MetaLeft','Win/⌘',1.25),K('AltLeft','Alt',1.25),K('Space','Leertaste',5),
+   K('AltRight','AltGr',1.25),K('ControlRight','Ctrl',1.25),K('ArrowLeft','←'),K('ArrowDown','↓'),K('ArrowRight','→')]
+];
+const ALL_KEYS = LAYOUT.flat().filter(k => k.code);
+const keyName = c => (ALL_KEYS.find(k => k.code === c) || {label:c}).label + (c.endsWith('Right') && !c.startsWith('Arrow') ? ' (rechts)' : c.endsWith('Left') && !c.startsWith('Arrow') ? ' (links)' : '');
+const kEls = {};
+LAYOUT.forEach(row => {
+  const r = document.createElement('div'); r.className = 'krow';
+  row.forEach(k => {
+    const d = document.createElement('div');
+    if (k.gap){ d.className = 'gap'; } else {
+      d.className = 'key'; d.textContent = k.label; d.style.flexGrow = k.w;
+      d.onclick = () => { // antippen = überspringen
+        const i = st.kSkip.indexOf(k.code);
+        if (i >= 0) st.kSkip.splice(i,1); else if (!st.kHit.includes(k.code)) st.kSkip.push(k.code);
+        paintKbd(); save();
+      };
+      kEls[k.code] = d;
+    }
+    r.appendChild(d);
+  });
+  $('#kbd').appendChild(r);
+});
+function paintKbd(){
+  ALL_KEYS.forEach(k => {
+    const e = kEls[k.code];
+    e.classList.toggle('hit', st.kHit.includes(k.code));
+    e.classList.toggle('skip', st.kSkip.includes(k.code));
+  });
+  $('#kProgress').textContent = `${st.kHit.length} / ${ALL_KEYS.length - st.kSkip.length}`;
+}
+document.addEventListener('keydown', e => {
+  if (cur !== 'kbd') return;
+  if (e.target.matches && e.target.matches('input[type=text]')) return;
+  e.preventDefault();
+  const c = e.code || e.key;
+  $('#kLast').textContent = `${e.key === ' ' ? 'Leertaste' : e.key}  [${c}]`;
+  const el = kEls[c];
+  if (el){
+    el.classList.add('down');
+    if (!st.kHit.includes(c)){
+      st.kHit.push(c);
+      const s = st.kSkip.indexOf(c); if (s >= 0) st.kSkip.splice(s,1);
+      paintKbd();
+      if (st.kHit.length >= ALL_KEYS.length - st.kSkip.length && st.kSkip.length === 0) autoSet('kbd','ok');
+      save();
+    }
+  }
+  $('#kCapture').value = '';
+});
+document.addEventListener('keyup', e => { const el = kEls[e.code]; if (el) el.classList.remove('down'); });
+$('#kFocus').onclick = () => $('#kCapture').focus();
+$('#kReset').onclick = () => { st.kHit = []; st.kSkip = []; $('#kLast').textContent = '–'; paintKbd(); save(); };
+
+/* ---------- Maus ---------- */
+const MCHECKS = {move:'Bewegung', left:'Linksklick', dbl:'Doppelklick', right:'Rechtsklick', up:'Scroll hoch', down:'Scroll runter', drag:'Ziehen'};
+function paintMouse(){
+  $('#mChips').innerHTML = Object.entries(MCHECKS).map(([k,v]) => `<span class="chip ${st.mouse[k]?'on':''}">${st.mouse[k]?'✓ ':''}${v}</span>`).join('');
+}
+function mHit(k){
+  if (st.mouse[k]) return;
+  st.mouse[k] = true; paintMouse();
+  if (Object.keys(MCHECKS).every(x => st.mouse[x])) autoSet('mouse','ok');
+  save();
+}
+const pad = $('#pad'), cursor = $('#cursor');
+let dragStart = null, moveDist = 0, lastPt = null;
+function info(e, what){
+  $('#mInfo').textContent = `Eingabe: ${e.pointerType || 'maus'} · ${what}`;
+  $('#padText').textContent = what;
+}
+pad.addEventListener('pointermove', e => {
+  const r = pad.getBoundingClientRect();
+  cursor.style.display = 'block'; cursor.style.left = (e.clientX - r.left) + 'px'; cursor.style.top = (e.clientY - r.top) + 'px';
+  if (lastPt) moveDist += Math.hypot(e.clientX - lastPt.x, e.clientY - lastPt.y);
+  lastPt = {x:e.clientX, y:e.clientY};
+  if (moveDist > 80) mHit('move');
+  if (dragStart && e.buttons & 1 && Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y) > 40){ mHit('drag'); info(e,'Ziehen'); }
+});
+pad.addEventListener('pointerdown', e => {
+  if (e.button === 2){ mHit('right'); info(e,'Rechtsklick'); return; }
+  if (e.button === 0){ mHit('left'); dragStart = {x:e.clientX, y:e.clientY}; info(e,'Linksklick'); }
+});
+pad.addEventListener('pointerup', () => dragStart = null);
+pad.addEventListener('dblclick', e => { mHit('dbl'); info(e,'Doppelklick'); });
+pad.addEventListener('contextmenu', e => { e.preventDefault(); mHit('right'); info(e,'Rechtsklick'); });
+pad.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.deltaY < 0){ mHit('up'); info(e,'Scroll hoch'); } else if (e.deltaY > 0){ mHit('down'); info(e,'Scroll runter'); }
+}, {passive:false});
+$('#mReset').onclick = () => { st.mouse = {}; moveDist = 0; paintMouse(); save(); };
+
+/* ---------- LAN ---------- */
+const withTimeout = (url, opt={}, ms=8000) => {
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
+  return fetch(url, {...opt, signal:c.signal, cache:'no-store'}).finally(() => clearTimeout(t));
+};
+async function lanTest(){
+  const btn = $('#lanRun'); btn.disabled = true;
+  const busy = m => $('#lanBusy').textContent = m;
+  const r = {time:new Date().toISOString(), radiosOff:$('#lanOff').checked, online:false};
+  try{
+    busy('Prüfe Internet …');
+    let ipOk = false;
+    try{
+      const j = await (await withTimeout('https://ipapi.co/json/')).json();
+      if (j.ip){ r.ip = j.ip; r.org = j.org || ''; r.city = [j.city, j.country_code].filter(Boolean).join(', '); ipOk = true; }
+    }catch(e){}
+    if (!ipOk){
+      try{ const j = await (await withTimeout('https://api.ipify.org?format=json')).json(); r.ip = j.ip; ipOk = true; }catch(e){}
+    }
+    busy('Messe Latenz …');
+    const pings = [];
+    for (let i=0;i<5;i++){
+      const t0 = performance.now();
+      try{ await withTimeout('https://www.google.com/generate_204', {mode:'no-cors'}, 4000); pings.push(performance.now() - t0); }catch(e){}
+    }
+    r.online = ipOk || pings.length > 0;
+    if (pings.length){ pings.sort((a,b)=>a-b); r.ping = Math.round(pings[Math.floor(pings.length/2)]); }
+    if (r.online){
+      busy('Messe Download (10 MB) …');
+      try{
+        const t0 = performance.now();
+        const b = await (await withTimeout('https://speed.cloudflare.com/__down?bytes=10000000', {}, 25000)).blob();
+        const s = (performance.now() - t0) / 1000;
+        r.mbit = Math.round(b.size * 8 / s / 1e6 * 10) / 10;
+      }catch(e){ r.mbit = null; }
+    }
+  } finally { btn.disabled = false; busy(''); }
+  st.lan = r;
+  if (r.online && r.radiosOff) autoSet('lan','ok');
+  if (!r.online && r.radiosOff) autoSet('lan','fail');
+  paintLan(); save();
+}
+function paintLan(){
+  const r = st.lan, o = $('#lanOut');
+  if (!r){ o.innerHTML = '<div>Status</div><div>noch nicht getestet</div>'; return; }
+  let verdict;
+  if (r.online && r.radiosOff) verdict = '<b class="okc">✓ Online über LAN (Dockingstation)</b>';
+  else if (r.online) verdict = '<b style="color:var(--warn)">Online – aber WLAN/Mobilfunk nicht bestätigt aus</b>';
+  else verdict = '<b class="failc">✗ Keine Verbindung</b>';
+  o.innerHTML = `<div>Ergebnis</div><div>${verdict}</div>
+    <div>Öffentliche IP</div><div>${r.ip || '–'}</div>
+    <div>Netz / Provider</div><div>${r.org || '–'}</div>
+    <div>Ort</div><div>${r.city || '–'}</div>
+    <div>Latenz</div><div>${r.ping != null ? r.ping + ' ms' : '–'}</div>
+    <div>Download</div><div>${r.mbit ? r.mbit + ' Mbit/s' : '–'}</div>`;
+}
+$('#lanOff').onchange = () => { if (st.lan){ st.lan.radiosOff = $('#lanOff').checked; paintLan(); save(); } };
+$('#lanRun').onclick = lanTest;
+
+/* ---------- Kamera ---------- */
+const INTERNAL = /front|back|rück|vorder|dual|triple|ultra|tele|lidar|weitwinkel|wide|facetime|schreibtisch|desk/i;
+let stream = null;
+function stopVideo(){ if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; } $('#video').style.display = 'none'; $('#camRes').textContent = ''; }
+async function camScan(){
+  const msg = m => $('#camMsg').textContent = m;
+  if (!navigator.mediaDevices){ msg('Kamera-API nicht verfügbar (HTTPS nötig).'); return; }
+  msg('Suche …');
+  try{ const s = await navigator.mediaDevices.getUserMedia({video:true}); s.getTracks().forEach(t => t.stop()); }
+  catch(e){ msg('Zugriff verweigert: ' + e.name); return; }
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+  const list = devs.map((d,i) => ({id:d.deviceId, label:d.label || ('Kamera ' + (i+1)), ext:!INTERNAL.test(d.label)}));
+  st.cam = {time:new Date().toISOString(), list:list.map(({label,ext}) => ({label,ext})), ok:null};
+  const ext = list.filter(d => d.ext).length;
+  msg(`${list.length} Kamera(s), davon ${ext} vermutlich extern`);
+  $('#camList').innerHTML = list.map((d,i) => `<div class="cam"><span>${d.label} <span class="tag ${d.ext?'ext':''}">${d.ext?'extern?':'intern'}</span></span>
+     <button class="btn" data-i="${i}">Vorschau</button></div>`).join('') || '<span class="hint">Keine Kamera gefunden.</span>';
+  $$('#camList button').forEach(b => b.onclick = () => preview(list[b.dataset.i]));
+  if (ext === 0) autoSet('cam', 'fail');
+  save();
+}
+async function preview(d){
+  stopVideo();
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:d.id}}});
+    const v = $('#video'); v.srcObject = stream; v.style.display = 'block';
+    const s = stream.getVideoTracks()[0].getSettings();
+    $('#camRes').textContent = `${d.label}: ${s.width || '?'}×${s.height || '?'} @ ${s.frameRate ? Math.round(s.frameRate) : '?'} fps`;
+    if (d.ext && st.cam){ st.cam.ok = d.label; st.cam.res = `${s.width}×${s.height}`; autoSet('cam','ok'); save(); }
+  }catch(e){ $('#camRes').textContent = 'Vorschau fehlgeschlagen: ' + e.name; }
+}
+$('#camScan').onclick = camScan;
+if (navigator.mediaDevices && navigator.mediaDevices.addEventListener)
+  navigator.mediaDevices.addEventListener('devicechange', () => { if (st.cam && cur === 'cam') camScan(); });
+function paintCam(){
+  if (!st.cam){ $('#camList').innerHTML = '<span class="hint">Noch nicht gesucht.</span>'; $('#camMsg').textContent=''; return; }
+  $('#camList').innerHTML = st.cam.list.map(d => `<div class="cam"><span>${d.label} <span class="tag ${d.ext?'ext':''}">${d.ext?'extern?':'intern'}</span></span></div>`).join('')
+    + '<div class="hint" style="margin-top:6px">Für Vorschau erneut «Kameras suchen».</div>';
+}
+
+/* ---------- Bericht ---------- */
+const fmt = d => d.toLocaleString('de-CH', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+function iosVer(){ const m = navigator.userAgent.match(/OS (\d+)_(\d+)/); return m ? `iOS ${m[1]}.${m[2]}` : navigator.platform; }
+function buildReport(){
+  const m = st.meta, L = [];
+  L.push('DOCKINGSTATION-TEST');
+  L.push(`Datum:        ${fmt(new Date())}`);
+  if (m.ticket) L.push(`Ticket:       ${m.ticket}`);
+  L.push(`Dock-Modell:  ${m.dock || '–'}`);
+  if (m.asset) L.push(`Asset/SN:     ${m.asset}`);
+  if (m.user) L.push(`Benutzer:     ${m.user}`);
+  if (m.tech) L.push(`Techniker:    ${m.tech}`);
+  L.push(`Testgerät:    iPhone (${iosVer()})`);
+  L.push('');
+  const line = (t, detail) => {
+    const r = st.res[t];
+    L.push(`${(TESTS[t] + ':').padEnd(10)}${LABEL[r.s].toUpperCase()}${detail ? ' – ' + detail : ''}`);
+    if (r.n) L.push(`          Bemerkung: ${r.n}`);
+  };
+  // Tastatur
+  const total = ALL_KEYS.length, hit = st.kHit.length;
+  const missing = ALL_KEYS.filter(k => !st.kHit.includes(k.code) && !st.kSkip.includes(k.code)).map(k => keyName(k.code));
+  let kd = hit ? `${hit}/${total - st.kSkip.length} Tasten erkannt` : 'nicht getestet';
+  if (hit && missing.length) kd += `; ohne Reaktion: ${missing.join(', ')}`;
+  if (st.kSkip.length) kd += `; nicht testbar: ${st.kSkip.map(keyName).join(', ')}`;
+  line('kbd', kd);
+  // Maus
+  const mok = Object.keys(MCHECKS).filter(k => st.mouse[k]).map(k => MCHECKS[k]);
+  const mno = Object.keys(MCHECKS).filter(k => !st.mouse[k]).map(k => MCHECKS[k]);
+  line('mouse', mok.length ? `OK: ${mok.join(', ')}${mno.length ? '; fehlt: ' + mno.join(', ') : ''}` : 'nicht getestet');
+  // LAN
+  const r = st.lan;
+  let ld = 'nicht getestet';
+  if (r){
+    ld = r.online ? (r.radiosOff ? 'online über LAN (WLAN/Mobilfunk aus)' : 'online (WLAN/Mobilfunk nicht bestätigt aus)') : 'keine Verbindung';
+    const x = [];
+    if (r.ip) x.push(`IP ${r.ip}${r.org ? ' (' + r.org + ')' : ''}`);
+    if (r.ping != null) x.push(`Latenz ${r.ping} ms`);
+    if (r.mbit) x.push(`Download ${r.mbit} Mbit/s`);
+    if (x.length) ld += '; ' + x.join(', ');
+  }
+  line('lan', ld);
+  // Kamera
+  const c = st.cam;
+  let cd = 'nicht getestet';
+  if (c){
+    const ext = c.list.filter(d => d.ext);
+    cd = ext.length ? `externe Kamera erkannt: ${ext.map(d => d.label).join(', ')}` : `keine externe Kamera erkannt (${c.list.length} intern)`;
+    if (c.ok) cd += `; Bild OK (${c.res})`;
+  }
+  line('cam', cd);
+  L.push('');
+  const all = Object.keys(TESTS).map(t => st.res[t].s);
+  L.push('GESAMT:   ' + (all.includes('fail') ? 'FEHLER FESTGESTELLT' : all.every(x => x) ? 'OK' : 'UNVOLLSTÄNDIG'));
+  $('#report').textContent = L.join('\n');
+}
+$('#copy').onclick = async () => {
+  buildReport();
+  try{ await navigator.clipboard.writeText($('#report').textContent); $('#copyMsg').textContent = 'Kopiert ✓'; }
+  catch(e){ $('#copyMsg').textContent = 'Kopieren nicht möglich – Text markieren.'; }
+  setTimeout(() => $('#copyMsg').textContent = '', 2500);
+};
+$('#share').onclick = () => {
+  buildReport();
+  if (navigator.share) navigator.share({title:'Dock-Test ' + (st.meta.ticket || ''), text:$('#report').textContent}).catch(()=>{});
+  else $('#copy').click();
+};
+
+/* ---------- Start ---------- */
+function renderAll(){ paintStatus(); paintKbd(); paintMouse(); paintLan(); paintCam(); $('#lanOff').checked = !!(st.lan && st.lan.radiosOff); refreshDots(); }
+renderAll(); go('start');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
